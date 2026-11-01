@@ -107,6 +107,30 @@ input{width:100%;font:900 22px Nunito,sans-serif;padding:12px 14px;border-radius
 .confetti i{position:absolute;top:-20px;width:10px;height:16px;animation:fall linear infinite}
 @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
 .flex1{flex:1}
+.pitch{position:relative;flex:1;min-height:250px;border-radius:20px;border:4px solid #000;overflow:hidden;touch-action:none;
+  background:repeating-linear-gradient(90deg,#2a9a4c 0 12%,#258a44 12% 24%)}
+.goalbox{position:absolute;border:6px solid #fff;border-bottom:none;border-radius:4px 4px 0 0;
+  background:repeating-linear-gradient(45deg,rgba(255,255,255,.22) 0 2px,transparent 2px 12px),repeating-linear-gradient(-45deg,rgba(255,255,255,.22) 0 2px,transparent 2px 12px),rgba(0,0,0,.15)}
+.ent{position:absolute;transform:translate(-50%,-50%);pointer-events:none;line-height:1}
+.keeper{position:absolute;font-size:62px;transform:translate(-50%,-90%);pointer-events:none;line-height:1}
+.keeper.dive{transition:left .25s ease-out}
+.ball{position:absolute;transform:translate(-50%,-50%);transition:left .28s ease-out,top .28s ease-out,font-size .28s;pointer-events:none;line-height:1;filter:drop-shadow(0 4px 2px rgba(0,0,0,.4))}
+.cross{position:absolute;width:38px;height:38px;border:4px solid #ff2d55;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 3px #fff;pointer-events:none}
+.vline{position:absolute;top:0;bottom:0;width:3px;background:rgba(255,255,255,.5);transform:translateX(-50%);pointer-events:none}
+.pkmsg{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);font-family:'Lilita One';font-size:40px;white-space:nowrap;text-shadow:0 4px 0 #000;animation:pop .35s;pointer-events:none;-webkit-text-stroke:1px #000}
+.pkscore{text-align:center;font-size:28px;letter-spacing:4px}
+.arena{position:relative;flex:1;min-height:300px;border-radius:20px;border:4px solid #000;overflow:hidden;touch-action:none;
+  background:radial-gradient(circle at 50% 50%,#3b2a12,#1d1408)}
+.tg{position:absolute;width:76px;height:76px;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;font-size:54px;animation:tgin .15s ease-out;touch-action:none}
+@keyframes tgin{from{transform:translate(-50%,-50%) scale(0)}}
+.fx{position:absolute;transform:translate(-50%,-50%);font-family:'Lilita One';font-size:34px;text-shadow:0 3px 0 #000;animation:fxup .65s forwards;pointer-events:none}
+@keyframes fxup{to{transform:translate(-50%,-160%);opacity:0}}
+.dist{font-family:'Lilita One';font-size:64px;text-align:center;text-shadow:0 5px 0 #000;line-height:1}
+.runbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.runbtns button{height:160px;font-family:'Lilita One';font-size:30px;border-radius:22px;border:4px solid #000;box-shadow:0 7px 0 #000;background:#4a3a73;color:#fff;touch-action:none}
+.runbtns button.next{background:#ffd60a;color:#1b0b3a}
+.runbtns button:active{transform:translateY(5px);box-shadow:0 2px 0 #000}
+.runbtns.stun button{background:#555!important;color:#999!important}
 .toast{position:fixed;left:50%;top:16px;transform:translateX(-50%);background:#000;padding:10px 16px;border-radius:12px;font-weight:900;z-index:9}
 </style>
 </head>
@@ -307,8 +331,46 @@ const GAMES = {
   stroop: { name: 'COLOR TRAMPOSO', emoji: '🎨', desc: 'Tocá el COLOR de la tinta, NO lo que dice la palabra. 15 preguntas rapidísimas.', dur: 15 * 2000,
     init(d){ d.seed = (Math.random() * 1e9) | 0; d.q = 0; },
     tick(d, H, P, S, now){ d.q = Math.min(14, Math.floor((now - H.start) / 2000)); return false; },
-    rank(d, H, i){ const Q = stroopQs(d.seed), a = i.a || {}; let sc = 0, t = 0; for (let q = 0; q < 15; q++){ const r = a['q' + q]; if (!r) continue; if (+r[0] === Q[q].k){ sc++; t += +r[1] || 0; } else sc--; } return { k: -sc * 1e6 + t, v: sc + ' pts' }; } }
+    rank(d, H, i){ const Q = stroopQs(d.seed), a = i.a || {}; let sc = 0, t = 0; for (let q = 0; q < 15; q++){ const r = a['q' + q]; if (!r) continue; if (+r[0] === Q[q].k){ sc++; t += +r[1] || 0; } else sc--; } return { k: -sc * 1e6 + t, v: sc + ' pts' }; } },
+  pen: { name: 'PENALES', emoji: '⚽', desc: '5 penales. Primer toque: la DIRECCIÓN. Segundo toque: la ALTURA. El arquero se mueve y no perdona.', cap: 45000,
+    init(d){ d.seed = (Math.random() * 1e9) | 0; },
+    tick(d, H, P, S, now, rid){ return P.every(id => (+inOfS(S, id, rid).n || 0) >= 5); },
+    rank(d, H, i){ const g = +i.g || 0; return { k: -g, v: g + (g === 1 ? ' gol' : ' goles') }; } },
+  aim: { name: 'PUNTERÍA', emoji: '🔫', desc: 'Aparecen dianas 🎯: reventalas antes que se escapen. 💰 vale 3. Si le disparás al 🐔, te restan 3.', dur: 21000,
+    init(d){ d.seed = (Math.random() * 1e9) | 0; },
+    rank(d, H, i){ const s = +i.s || 0; return { k: -s, v: s + ' pts' }; } },
+  run: { name: '100 METROS', emoji: '🏃', desc: 'Tocá IZQ y DER alternando, como si corrieras. Si repetís el mismo pie, te tropezás 🤕', cap: 25000,
+    init(){},
+    tick(d, H, P, S, now, rid){ return P.every(id => inOfS(S, id, rid).fin != null); },
+    rank(d, H, i){ if (i.fin != null) return { k: +i.fin, v: (+i.fin / 1000).toFixed(2) + 's' }; const dd = +i.d || 0; return { k: 1e7 - dd * 1000, v: Math.floor(dd) + 'm' }; } }
 };
+
+const PK = {
+  sx: u => 5 + (u + .12) / 1.24 * 90,
+  sy: v => 72 - v * 54,
+  aim: (t, i) => .5 + .62 * Math.sin(t / 1000 * 2.4 * (1 + i * .12)),
+  pow: (t, i) => .62 - .62 * Math.cos(t / 1000 * 3.0 * (1 + i * .12)),
+  kx: (t, i, seed) => { const r = rng((seed + i * 7919) >>> 0); const ph = r() * 6.28, sp = 1.5 + i * .4 + r() * .5; return .5 + .36 * Math.sin(t / 1000 * sp + ph); }
+};
+function pkShoot(u, v, kx){
+  if (u < -.02 || u > 1.02 || v > 1.03) return 'out';
+  if (Math.abs(u) < .03 || Math.abs(u - 1) < .03 || Math.abs(v - 1) < .03) return 'post';
+  if (Math.abs(u - kx) < (v < .7 ? .17 : .09)) return 'save';
+  return 'goal';
+}
+const PKMSG = { goal: '¡GOLAZO! ⚽', save: '¡ATAJÓ! 🧤', post: '¡PALO! 😱', out: '¡A LA TRIBUNA! 🏟️' };
+let TGC = { seed: null, list: [] };
+function targets(seed){
+  if (TGC.seed === seed) return TGC.list;
+  const r = rng(seed), out = []; let t = 500;
+  for (let i = 0; i < 34; i++){
+    const x = r(), ty = x < .1 ? 'c' : x < .24 ? 'g' : 'n';
+    out.push({ t: Math.round(t), x: 10 + r() * 80, y: 9 + r() * 80, ty, life: ty === 'g' ? 750 : Math.max(800, 1300 - i * 15) });
+    t += 420 + r() * 380;
+  }
+  TGC = { seed, list: out }; return out;
+}
+const TGE = { n: '🎯', g: '💰', c: '🐔' }, TGP = { n: 1, g: 3, c: -3 };
 
 // ---------- motor del anfitrión ----------
 let G = null, H = {}, HS = {}, hEnd = 0;
@@ -350,11 +412,12 @@ function setIn(p){ Net.set({ in: Object.assign({}, myIn(), p) }); }
 function onNet(){
   const g = curG(); if (!g) return;
   const now = performance.now();
-  if (g.rid !== L.rid) L = { rid: g.rid, n: 0, pass: 0, guess: 10 };
+  if (g.rid !== L.rid) L = { rid: g.rid, n: 0, pass: 0, guess: 10, d: 0, s: 0, hit: {}, fx: [], last: null, stun: 0 };
   if (g.ph === 'play' && !L.start) L.start = now;
   if (g.gk === 'react' && g.ph === 'play' && g.d.go && !L.go) L.go = now;
   if (g.gk === 'stroop' && g.ph === 'play' && g.d.q !== L.q){ L.q = g.d.q; L.qs = now; }
   if (g.gk === 'count' && g.ph === 'play' && !g.d.show && !L.as) L.as = now;
+  if (g.gk === 'pen' && g.ph === 'play' && !L.pk) L.pk = { i: 0, ph: 'aim', t0: now, t0s: now, res: [] };
   // sonidos de transición
   const me = ME();
   if (g.ph !== prev.ph || g.rid !== prev.rid){
@@ -397,6 +460,28 @@ function act(a, v){
     case 'stop': if (g && g.ph === 'play' && g.gk === 'stop'){ const i = myIn(); if (i.ms != null) return; setIn({ ms: Math.round(performance.now() - L.start) }); SFX.ok(); } break;
     case 'cnt': if (g && g.gk === 'count'){ L.guess = Math.max(0, Math.min(42, (L.guess || 0) + (+v))); SFX.tap(); } break;
     case 'cntok': if (g && g.ph === 'play' && g.gk === 'count' && !g.d.show){ const i = myIn(); if (i.g != null) return; setIn({ g: L.guess, at: Math.round(performance.now() - (L.as || performance.now())) }); SFX.ok(); } break;
+    case 'kick': if (g && g.ph === 'play' && g.gk === 'pen' && L.pk){
+      const k = L.pk, now = performance.now();
+      if (k.ph === 'aim'){ k.u = PK.aim(now - k.t0, k.i); k.ph = 'power'; k.t0 = now; SFX.tick(); }
+      else if (k.ph === 'power'){
+        k.v = PK.pow(now - k.t0, k.i); k.kx = PK.kx(now - k.t0s, k.i, g.d.seed); k.r = pkShoot(k.u, k.v, k.kx);
+        k.ph = 'res'; k.rt = now; k.res.push(k.r === 'goal' ? 1 : 0);
+        setIn({ g: k.res.reduce((a, b) => a + b, 0), n: k.res.length });
+        if (k.r === 'goal') SFX.win(); else { SFX.bad(); vib(150); }
+      }
+    } break;
+    case 'shoot': if (g && g.ph === 'play' && g.gk === 'aim'){
+      const i = +v; if (L.hit[i]) return; const t = targets(g.d.seed)[i]; if (!t) return;
+      L.hit[i] = 1; const pts = TGP[t.ty], now = performance.now(); L.s += pts;
+      L.fx = L.fx.filter(f => now - f.t < 700); L.fx.push({ id: i, x: t.x.toFixed(1), y: t.y.toFixed(1), txt: (pts > 0 ? '+' : '') + pts, c: pts > 0 ? '#ffd60a' : '#ff3b3b', t: now });
+      setIn({ s: L.s }); if (pts > 0) SFX.ok(); else { SFX.buzz(); vib(200); }
+    } break;
+    case 'run': if (g && g.ph === 'play' && g.gk === 'run'){
+      const now = performance.now(); if (myIn().fin != null || now < L.stun) return;
+      if (L.last === v){ L.stun = now + 600; L.last = null; SFX.bad(); vib(150); return; }
+      L.last = v; L.d = Math.min(100, L.d + 1.25); SFX.tap();
+      if (L.d >= 100){ setIn({ d: 100, fin: Math.round(now - L.start) }); SFX.win(); } else setIn({ d: Math.round(L.d * 100) / 100 });
+    } break;
     case 'col': if (g && g.ph === 'play' && g.gk === 'stroop'){
       const q = g.d.q, i = myIn(), ans = Object.assign({}, i.a || {});
       if (ans['q' + q]) return;
@@ -430,7 +515,7 @@ function status(P, fn){ return `<div class="status">${P.map(p => `<span style="-
 function renderHome(){
   return `<div class="screen">
     <div class="logo">MANO<span>TAZO!</span></div>
-    <div class="tag">mini-juegos a full para 2 a 6 celulares</div>
+    <div class="tag">9 mini-juegos a full para 2 a 6 celulares</div>
     <div class="card">
       <label>Tu nombre</label><input id="nm" maxlength="12" autocomplete="off" placeholder="Ej: El Pancho" value="${esc(homeVals.nm)}">
       <label style="margin-top:12px">Elegí tu bicho</label>
@@ -450,7 +535,7 @@ function renderWait(){
 }
 function renderLobby(g, P){
   const me = ME(), host = P.find(p => p.host);
-  return `<div class="screen">
+  return `<div class="screen" data-k="lobby">
     <div class="bar"><span class="pill"><span class="dot ${Net.connected ? '' : 'off'}"></span>${P.length} en la sala</span><span class="pill" data-a="home">✕ salir</span></div>
     <div class="sub" style="margin-top:6px">CÓDIGO DE LA SALA</div>
     <div class="code">${esc(Net.code)}</div>
@@ -465,7 +550,7 @@ function renderLobby(g, P){
 }
 function renderIntro(g, P){
   const gm = GAMES[g.gk] || {};
-  return `<div class="screen">${bar(g, P)}<div class="screen center">
+  return `<div class="screen" data-k="intro-${g.rid}">${bar(g, P)}<div class="screen center">
     <div class="gemoji">${gm.emoji || '❓'}</div><div class="gname">${esc(gm.name || '')}</div>
     <div class="gdesc">${esc(gm.desc || '')}</div><div class="cd">${Math.max(1, Math.ceil(g.t / 1000))}</div></div></div>`;
 }
@@ -517,19 +602,54 @@ function renderPlay(g, P){
     case 'stroop': {
       const Q = stroopQs(d.seed), q = Math.min(14, d.q || 0), cur = Q[q], ans = (myIn().a || {})['q' + q];
       body = `<div class="bar"><span class="pill">Pregunta ${q + 1}/15</span><span class="pill">${Math.ceil(g.t / 1000)}s</span></div>
-        <div class="sword" data-q="${q}" style="color:${SC[cur.k].c}">${SC[cur.w].n}</div>
+        <div class="sword" data-k="q${q}" style="color:${SC[cur.k].c}">${SC[cur.w].n}</div>
         <div class="sub">${ans ? (+ans[0] === cur.k ? '✅ ¡Bien!' : '❌ ¡Caíste!') : 'Tocá el color de la TINTA'}</div>
         <div class="sgrid">${cur.order.map(ci => `<button class="sbtn ${ans && +ans[0] === ci ? (ci === cur.k ? 'ok' : 'bad') : ''}" data-a="col" data-v="${ci}" style="color:${SC[(ci + cur.tint) % 4].c}">${SC[ci].n}</button>`).join('')}</div>`;
       break; }
+    case 'pen': {
+      const k = L.pk; if (!k) break;
+      const now = performance.now(), goals = k.res.reduce((a, b) => a + b, 0);
+      const kxv = (k.ph === 'res' || k.ph === 'done') ? ((k.ph === 'res' && k.r === 'save') ? k.u : k.kx) : PK.kx(now - k.t0s, k.i, d.seed);
+      let bx = 50, by = 90, fs = 42, cross = '';
+      if (k.ph === 'res'){ bx = PK.sx(k.u); by = PK.sy(k.v); fs = 26; }
+      if (k.ph === 'aim') cross = `<div class="cross" style="left:${PK.sx(PK.aim(now - k.t0, k.i)).toFixed(2)}%;top:${PK.sy(.5)}%"></div>`;
+      if (k.ph === 'power') cross = `<div class="vline" style="left:${PK.sx(k.u).toFixed(2)}%"></div><div class="cross" style="left:${PK.sx(k.u).toFixed(2)}%;top:${PK.sy(PK.pow(now - k.t0, k.i)).toFixed(2)}%"></div>`;
+      const msg = k.ph === 'res' ? `<div class="pkmsg" data-k="m${k.i}">${PKMSG[k.r]}</div>` : k.ph === 'done' ? `<div class="pkmsg" data-k="done">${goals} de 5 ${goals >= 4 ? '🔥' : goals <= 1 ? '😭' : ''}</div>` : '';
+      const gl = PK.sx(0), gw = PK.sx(1) - PK.sx(0), gt = PK.sy(1), gh = PK.sy(0) - PK.sy(1);
+      body = `<div class="pkscore">${k.res.map(r => r ? '⚽' : '❌').join('')}${'⚪'.repeat(5 - k.res.length)}</div>
+        <div class="pitch" data-a="kick"><div class="goalbox" style="left:${gl}%;width:${gw}%;top:${gt}%;height:${gh}%"></div>
+        <div class="keeper ${k.ph === 'res' && k.r === 'save' ? 'dive' : ''}" style="left:${PK.sx(kxv).toFixed(2)}%;top:${PK.sy(0)}%">🙆</div>
+        ${cross}<div class="ball" style="left:${bx.toFixed(2)}%;top:${by.toFixed(2)}%;font-size:${fs}px">⚽</div>${msg}</div>
+        <div class="sub">${k.ph === 'aim' ? '👆 Tocá para fijar la DIRECCIÓN' : k.ph === 'power' ? '👆 Tocá para fijar la ALTURA' : k.ph === 'done' ? 'Esperando al resto…' : '&nbsp;'}</div>`
+        + status(P, p => '⚽' + (+inOf(p, g).g || 0));
+      break; }
+    case 'aim': {
+      const now = performance.now(), e = L.start ? now - L.start : 0, T = targets(d.seed);
+      let tg = '';
+      T.forEach((t, i) => { if (e >= t.t && e < t.t + t.life && !L.hit[i]) tg += `<div class="tg" data-k="t${i}" data-a="shoot" data-v="${i}" style="left:${t.x.toFixed(1)}%;top:${t.y.toFixed(1)}%">${TGE[t.ty]}</div>`; });
+      const fx = L.fx.filter(f => now - f.t < 650).map(f => `<div class="fx" data-k="f${f.id}" style="left:${f.x}%;top:${f.y}%;color:${f.c}">${f.txt}</div>`).join('');
+      body = `<div class="bar"><span class="pill">🎯 ${L.s} pts</span><span class="pill">${Math.ceil(g.t / 1000)}s</span></div><div class="arena">${tg}${fx}</div>`
+        + status(P, p => (+inOf(p, g).s || 0) + ' pts');
+      break; }
+    case 'run': {
+      const ds = P.map(p => p.id === me ? L.d : Math.min(100, +inOf(p, g).d || 0));
+      const now = performance.now(), stun = now < L.stun, mi = myIn(), fin = mi.fin != null;
+      body = `<div class="lanes">${P.map((p, k) => { const pct = ds[k]; return `<div class="lane" style="--c:${p.col}"><div class="fill" style="width:${pct}%"></div><div class="runner" style="left:calc(${(pct * .82).toFixed(1)}% + 4px)">${p.av}</div><span class="ln">${esc(p.name)} · ${Math.floor(pct)}m${inOf(p, g).fin != null ? ' 🏁' : ''}</span></div>`; }).join('')}</div>
+        <div class="flex1"></div>
+        <div class="dist">${fin ? '🏁 ' + (mi.fin / 1000).toFixed(2) + 's' : Math.floor(L.d) + 'm'}</div>
+        <div class="sub">${stun ? '🤕 ¡TROPEZASTE! Alterná los pies' : fin ? '¡Llegaste! Esperando al resto…' : 'IZQ, DER, IZQ, DER… ¡rápido!'}</div>
+        <div class="flex1"></div>
+        <div class="runbtns ${stun ? 'stun' : ''}"><button data-a="run" data-v="l" class="${L.last !== 'l' ? 'next' : ''}">👟<br>IZQ</button><button data-a="run" data-v="r" class="${L.last !== 'r' ? 'next' : ''}">DER<br>👟</button></div>`;
+      break; }
   }
-  return `<div class="screen">${bar(g, P)}${body}</div>`;
+  return `<div class="screen" data-k="play-${g.rid}">${bar(g, P)}${body}</div>`;
 }
 function pName(P, id){ const p = P.find(x => x.id === id); return p || { av: '👻', name: 'se fue', col: '#888' }; }
 function renderRes(g, P){
   const gm = GAMES[g.gk] || {}, res = g.res || [];
   const last = res.length > 1 ? res[res.length - 1] : null, first = res[0];
   const roast = (last && last.pl > 0) ? `${esc(pName(P, last.id).name)}: ${ROASTS[g.rid % ROASTS.length]}` : '';
-  return `<div class="screen">${bar(g, P)}
+  return `<div class="screen" data-k="res-${g.rid}">${bar(g, P)}
     <div class="rtitle">${gm.emoji || ''} ${esc(gm.name || '')}</div>
     ${g.rev ? `<div class="rev">${esc(g.rev)}</div>` : ''}
     <div class="rlist">${res.map((r, i) => { const p = pName(P, r.id); return `<div class="rrow" style="--c:${p.col};animation-delay:${i * .12}s"><span class="medal">${MED[r.pl] || '🫠'}</span><span class="av">${p.av}</span><span class="nm">${esc(p.name)}</span><span class="val">${esc(r.v)}</span><span class="pts">+${r.pts}</span></div>`; }).join('')}</div>
@@ -543,7 +663,7 @@ function renderFinal(g, P){
   const rows = P.map(p => ({ p, s: sc.get(p.id) || 0 })).sort((a, b) => b.s - a.s);
   const top = rows.slice(0, 3), ord = [top[1], top[0], top[2]], cls = ['p2', 'p1', 'p3'];
   const lastRow = rows.length > 1 ? rows[rows.length - 1] : null;
-  return `${confetti(g.rid)}<div class="screen">
+  return `${confetti(g.rid)}<div class="screen" data-k="final-${g.rid}">
     <div class="rtitle" style="font-size:38px;margin-top:6px">🏆 FIN DEL BARDO</div>
     <div class="podium">${ord.map((x, i) => x ? `<div class="pod ${cls[i]}"><div class="av">${x.p.av}</div><div>${esc(x.p.name)}</div><div class="blk">${x.s}</div></div>` : '<div class="pod"></div>').join('')}</div>
     <div class="rlist">${rows.map((x, i) => `<div class="rrow" style="--c:${x.p.col};animation-delay:${i * .1}s"><span class="medal">${i + 1}°</span><span class="av">${x.p.av}</span><span class="nm">${esc(x.p.name)}<br><span class="title">${i === 0 ? '👑 LEYENDA DE LA NOCHE' : (lastRow && x === lastRow ? '🥔 LA PAPA DE LA NOCHE' : '')}</span></span><span class="pts">${x.s}</span></div>`).join('')}</div>
@@ -563,9 +683,34 @@ function render(){
   if (g.ph === 'final') return renderFinal(g, P);
   return renderWait();
 }
+function syncAttrs(x, y){
+  for (const at of Array.from(x.attributes)) if (!y.hasAttribute(at.name)) x.removeAttribute(at.name);
+  for (const at of Array.from(y.attributes)) if (x.getAttribute(at.name) !== at.value) x.setAttribute(at.name, at.value);
+}
+function syncChildren(a, b){
+  const an = Array.from(a.childNodes), bn = Array.from(b.childNodes);
+  for (let i = 0; i < bn.length; i++){
+    const x = an[i], y = bn[i];
+    if (!x){ a.appendChild(y); continue; }
+    if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName || (x.nodeType === 1 && x.getAttribute('data-k') !== y.getAttribute('data-k'))){ a.replaceChild(y, x); continue; }
+    if (x.nodeType === 3 || x.nodeType === 8){ if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; continue; }
+    if (x.nodeType === 1){ syncAttrs(x, y); if (x.tagName !== 'INPUT' && x.tagName !== 'TEXTAREA') syncChildren(x, y); }
+  }
+  for (let i = an.length - 1; i >= bn.length; i--) a.removeChild(an[i]);
+}
+function localTick(){
+  const k = L.pk; if (!k) return;
+  const now = performance.now();
+  if (k.ph === 'res' && now - k.rt > 1400){ if (k.res.length < 5){ k.i++; k.ph = 'aim'; k.t0 = k.t0s = now; k.r = null; } else k.ph = 'done'; }
+}
 let lastHTML = '';
+const tpl = document.createElement('template');
 function frame(){
-  try { const h = render(); if (h !== lastHTML){ app.innerHTML = h; lastHTML = h; } } catch(e){ console.error(e); }
+  try {
+    localTick();
+    const h = render();
+    if (h !== lastHTML){ tpl.innerHTML = h; syncChildren(app, tpl.content); lastHTML = h; }
+  } catch(e){ console.error(e); }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
