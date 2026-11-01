@@ -254,7 +254,7 @@ const inOfS = (S, id, rid) => { const i = S[id] && S[id].in; return (i && i.rid 
 const SC = [{ n: 'ROJO', c: '#ff3b3b' }, { n: 'AZUL', c: '#3d8bff' }, { n: 'VERDE', c: '#21d07a' }, { n: 'AMARILLO', c: '#ffd60a' }];
 function stroopQs(seed){
   const r = rng(seed), out = [];
-  for (let q = 0; q < 8; q++){
+  for (let q = 0; q < 15; q++){
     const w = Math.floor(r() * 4); let k = Math.floor(r() * 4);
     if (k === w && r() < .85) k = (k + 1 + Math.floor(r() * 3)) % 4;
     const order = shuffle([0, 1, 2, 3], r), tint = Math.floor(r() * 3) + 1;
@@ -270,7 +270,7 @@ function countGrid(seed){
 }
 
 const GAMES = {
-  tap: { name: '¡MACHACA!', emoji: '👊', desc: 'Tocá el botón lo más rápido que puedas durante 6 segundos. Sin piedad con la pantalla.', dur: 6000,
+  tap: { name: '¡MACHACA!', emoji: '👊', desc: 'Tocá el botón lo más rápido que puedas durante 12 segundos. Sin piedad con la pantalla.', dur: 12000,
     init(){}, rank(d, H, i){ const n = +i.n || 0; return { k: -n, v: n + ' toques' }; } },
   react: { name: '¡NO TE ADELANTES!', emoji: '🚦', desc: 'Cuando la pantalla se ponga VERDE, tocá. Si tocás antes, quedás de payaso.', cap: 12000,
     init(d, H, P, now){ d.go = 0; d.fake = 0; H.goAt = now + 2000 + Math.random() * 4500; if (Math.random() < .6) H.fakeAt = now + 800 + Math.random() * (H.goAt - now - 1600); },
@@ -280,8 +280,8 @@ const GAMES = {
       return !!(d.go && now - H.goT > 3000);
     },
     rank(d, H, i){ if (i.early) return { k: 2e6, v: '🤡 se adelantó' }; if (i.ms != null) return { k: Math.max(0, +i.ms), v: Math.max(0, +i.ms) + ' ms' }; return { k: 1e6, v: '😴 dormido' }; } },
-  bomb: { name: 'BOMBA CALIENTE', emoji: '💣', desc: 'Si te llega la bomba, ¡PASALA! Al que le explote en la mano, pierde. Son 3 explosiones.', cap: 90000,
-    init(d, H, P, now){ H.b = {}; H.seen = {}; d.left = 3; d.h = pick(P); d.x = null; d.pc = 0; d.b = []; H.fuse = now + 5000 + Math.random() * 7000; H.lp = now; },
+  bomb: { name: 'BOMBA CALIENTE', emoji: '💣', desc: 'Si te llega la bomba, ¡PASALA! Al que le explote en la mano, pierde. Son 5 explosiones.', cap: 150000,
+    init(d, H, P, now){ H.b = {}; H.seen = {}; d.left = 5; d.h = pick(P); d.x = null; d.pc = 0; d.b = []; H.fuse = now + 5000 + Math.random() * 7000; H.lp = now; },
     tick(d, H, P, S, now, rid){
       if (d.x){ if (now >= H.xu){ d.x = null; if (d.left <= 0) return true; d.h = pick(P); d.pc++; H.fuse = now + 4000 + Math.random() * 8000; H.lp = now; } return false; }
       if (!P.includes(d.h)) d.h = pick(P);
@@ -299,15 +299,15 @@ const GAMES = {
     init(){}, tick(d, H, P, S, now, rid){ return P.every(id => inOfS(S, id, rid).ms != null); },
     rank(d, H, i){ if (i.ms == null) return { k: 1e9, v: 'no frenó 🫠' }; const ms = +i.ms; return { k: Math.abs(ms - 10000), v: (ms / 1000).toFixed(2) + 's' }; },
     reveal(){ return '🎯 Objetivo: 10.00s'; } },
-  count: { name: '¿CUÁNTOS POLLOS?', emoji: '🐔', desc: 'Vas a ver un montón de bichos por 4 segundos. Contá SOLO los 🐔. Ojo con los impostores.', dur: 14000,
+  count: { name: '¿CUÁNTOS POLLOS?', emoji: '🐔', desc: 'Vas a ver un montón de bichos por 6 segundos. Contá SOLO los 🐔. Ojo con los impostores.', dur: 18000,
     init(d, H){ d.seed = (Math.random() * 1e9) | 0; d.show = 1; H.N = countGrid(d.seed).N; },
-    tick(d, H, P, S, now, rid){ d.show = now - H.start < 4500 ? 1 : 0; return !d.show && P.every(id => inOfS(S, id, rid).g != null); },
+    tick(d, H, P, S, now, rid){ d.show = now - H.start < 6500 ? 1 : 0; return !d.show && P.every(id => inOfS(S, id, rid).g != null); },
     rank(d, H, i){ if (i.g == null) return { k: 1e12, v: 'ni respondió' }; const diff = Math.abs(+i.g - H.N); return { k: diff * 1e6 + Math.min(+i.at || 0, 999999), v: 'dijo ' + (+i.g) }; },
     reveal(d, H){ return 'Había ' + H.N + ' 🐔'; } },
-  stroop: { name: 'COLOR TRAMPOSO', emoji: '🎨', desc: 'Tocá el COLOR de la tinta, NO lo que dice la palabra. 8 preguntas rapidísimas.', dur: 8 * 2100,
+  stroop: { name: 'COLOR TRAMPOSO', emoji: '🎨', desc: 'Tocá el COLOR de la tinta, NO lo que dice la palabra. 15 preguntas rapidísimas.', dur: 15 * 2000,
     init(d){ d.seed = (Math.random() * 1e9) | 0; d.q = 0; },
-    tick(d, H, P, S, now){ d.q = Math.min(7, Math.floor((now - H.start) / 2100)); return false; },
-    rank(d, H, i){ const Q = stroopQs(d.seed), a = i.a || {}; let sc = 0, t = 0; for (let q = 0; q < 8; q++){ const r = a['q' + q]; if (!r) continue; if (+r[0] === Q[q].k){ sc++; t += +r[1] || 0; } else sc--; } return { k: -sc * 1e6 + t, v: sc + ' pts' }; } }
+    tick(d, H, P, S, now){ d.q = Math.min(14, Math.floor((now - H.start) / 2000)); return false; },
+    rank(d, H, i){ const Q = stroopQs(d.seed), a = i.a || {}; let sc = 0, t = 0; for (let q = 0; q < 15; q++){ const r = a['q' + q]; if (!r) continue; if (+r[0] === Q[q].k){ sc++; t += +r[1] || 0; } else sc--; } return { k: -sc * 1e6 + t, v: sc + ' pts' }; } }
 };
 
 // ---------- motor del anfitrión ----------
@@ -430,7 +430,7 @@ function status(P, fn){ return `<div class="status">${P.map(p => `<span style="-
 function renderHome(){
   return `<div class="screen">
     <div class="logo">MANO<span>TAZO!</span></div>
-    <div class="tag">mini-juegos de 10 segundos para 2 a 6 celulares</div>
+    <div class="tag">mini-juegos a full para 2 a 6 celulares</div>
     <div class="card">
       <label>Tu nombre</label><input id="nm" maxlength="12" autocomplete="off" placeholder="Ej: El Pancho" value="${esc(homeVals.nm)}">
       <label style="margin-top:12px">Elegí tu bicho</label>
@@ -476,7 +476,7 @@ function renderPlay(g, P){
   const me = ME(), d = g.d; let body = '';
   switch (g.gk){
     case 'tap': {
-      const ns = P.map(p => +inOf(p, g).n || 0), mx = Math.max(30, ...ns);
+      const ns = P.map(p => +inOf(p, g).n || 0), mx = Math.max(60, ...ns);
       body = timerPill(g) + `<div class="lanes">${P.map((p, k) => { const pct = Math.min(100, ns[k] / mx * 100); return `<div class="lane" style="--c:${p.col}"><div class="fill" style="width:${pct}%"></div><div class="runner" style="left:calc(${pct * .82}% + 4px)">${p.av}</div><span class="ln">${esc(p.name)} · ${ns[k]}</span></div>`; }).join('')}</div>
         <div class="mash"><button class="mashb" data-a="tap">${L.n}<small>¡DALE DALE DALE!</small></button></div>`;
       break; }
@@ -515,8 +515,8 @@ function renderPlay(g, P){
       body += status(P, p => inOf(p, g).g != null ? '✅' : '⏳');
       break; }
     case 'stroop': {
-      const Q = stroopQs(d.seed), q = Math.min(7, d.q || 0), cur = Q[q], ans = (myIn().a || {})['q' + q];
-      body = `<div class="bar"><span class="pill">Pregunta ${q + 1}/8</span><span class="pill">${Math.ceil(g.t / 1000)}s</span></div>
+      const Q = stroopQs(d.seed), q = Math.min(14, d.q || 0), cur = Q[q], ans = (myIn().a || {})['q' + q];
+      body = `<div class="bar"><span class="pill">Pregunta ${q + 1}/15</span><span class="pill">${Math.ceil(g.t / 1000)}s</span></div>
         <div class="sword" data-q="${q}" style="color:${SC[cur.k].c}">${SC[cur.w].n}</div>
         <div class="sub">${ans ? (+ans[0] === cur.k ? '✅ ¡Bien!' : '❌ ¡Caíste!') : 'Tocá el color de la TINTA'}</div>
         <div class="sgrid">${cur.order.map(ci => `<button class="sbtn ${ans && +ans[0] === ci ? (ci === cur.k ? 'ok' : 'bad') : ''}" data-a="col" data-v="${ci}" style="color:${SC[(ci + cur.tint) % 4].c}">${SC[ci].n}</button>`).join('')}</div>`;
